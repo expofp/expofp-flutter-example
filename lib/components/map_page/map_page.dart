@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:expofp/components/controls.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:expofp/components/map_page/booth_panel.dart';
 import 'package:expofp/components/map_page/direction_panel.dart';
+import 'package:expofp/models/direction.dart';
+import 'package:expofp/models/exhibitor_booth.dart';
+import 'package:flutter/material.dart';
+import 'package:expofp/components/map_page/booth_panel.dart';
+import 'package:expofp/components/map_page/directions_panel.dart';
 import 'package:expofp/models/exhibitor.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class MapPage extends StatefulWidget {
   static const routeName = '/mapPage';
@@ -12,11 +17,26 @@ class MapPage extends StatefulWidget {
 
   final List<Exhibitor> exhibitors;
 
-  const MapPage({Key? key, required this.exhibitors, this.exhibitor})
+  final VoidCallback hideMap;
+
+  late final _MapPageState state;
+
+  MapPage(
+      {Key? key,
+      required this.exhibitors,
+      this.exhibitor,
+      required this.hideMap})
       : super(key: key);
 
   @override
-  _MapPageState createState() => _MapPageState();
+  _MapPageState createState() {
+    state = _MapPageState();
+    return state;
+  }
+
+  void selectBooth(String booth) {
+    state.selectBooth(booth);
+  }
 }
 
 class _MapPageState extends State<MapPage> {
@@ -25,25 +45,9 @@ class _MapPageState extends State<MapPage> {
   late final List<ExhibitorBooth> booths;
 
   ExhibitorBooth? selectedBooth;
-  bool showDirection = false;
-  InAppWebViewController? webViewController;
-
-  InAppWebViewGroupOptions options = InAppWebViewGroupOptions(
-      crossPlatform: InAppWebViewOptions(
-          useShouldOverrideUrlLoading: true,
-          mediaPlaybackRequiresUserGesture: false,
-          javaScriptEnabled: true,
-          cacheEnabled: true),
-      android: AndroidInAppWebViewOptions(
-        useHybridComposition: true,
-        hardwareAcceleration: true,
-        cacheMode: AndroidCacheMode.LOAD_CACHE_ELSE_NETWORK,
-        databaseEnabled: true,
-        domStorageEnabled: true,
-      ),
-      ios: IOSInAppWebViewOptions(
-        allowsInlineMediaPlayback: true,
-      ));
+  Direction? direction;
+  bool showDirections = false;
+  WebViewController? webViewController;
 
   @override
   void initState() {
@@ -61,69 +65,99 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  InAppWebView getInAppWebView(Exhibitor? exhibitor) => InAppWebView(
-      key: webViewKey,
-      initialUrlRequest:
-          //URLRequest(url: Uri.parse("https://developer.expofp.com/examples/demo.html${selectedBooth == null ? "" : "?" + selectedBooth!}")),
-          URLRequest(
-              url: Uri.parse(
-                  "https://developer.expofp.com/examples/autumnfair.html${exhibitor == null ? "" : "?" + exhibitor.id}")),
-      //URLRequest(url: Uri.parse("about:blank")),
-      initialOptions: options,
-      onWebViewCreated: (controller) async {
-        //controller.loadData(data: html);//
-        controller.addJavaScriptHandler(
-            handlerName: 'onBoothClick',
-            callback: (args) {
-              setState(() {
-                showDirection = false;
-                selectedBooth = booths.firstWhere(
-                    (b) => b.boothName == args.first.toString(), orElse: () {
-                  var newBooth = ExhibitorBooth("None", args.first.toString());
-                  booths.add(newBooth);
-                  return newBooth;
-                });
-              });
-            });
-        webViewController = controller;
+  void setSelectedBooth(String booth) {
+    setState(() {
+      showDirections = false;
+      direction = null;
+      selectedBooth =
+          booths.firstWhere((b) => b.boothName == booth, orElse: () {
+        var newBooth = ExhibitorBooth("None", booth);
+        booths.add(newBooth);
+        return newBooth;
       });
+    });
+  }
+
+  void selectBooth(String booth) {
+    webViewController?.evaluateJavascript("selectBooth('$booth')");
+    setSelectedBooth(booth);
+  }
 
   @override
   Widget build(BuildContext context) {
-    print('############### Build MapPage');
-
     return Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: widget.hideMap,
+          ),
           title: const MapIcon(),
           actions: [
             IconButton(
-                onPressed: () => setState(() => showDirection = true),
+                onPressed: () => setState(() => showDirections = true),
                 icon: const Icon(Icons.directions))
           ],
         ),
-        body: SafeArea(
-            child: Column(children: <Widget>[
-      Expanded(
-        child: Stack(
-          children: [getInAppWebView(widget.exhibitor)],
-        ),
-      ),
-      showDirection
-          ? DirectionPanel(
-              booths: booths,
-              to: selectedBooth,
-              showDirection: (String from, String to) => webViewController!
-                  .evaluateJavascript(source: "selectRoute('$from', '$to')"),
-              cancel: () => setState(() {
-                    selectedBooth = null;
-                    showDirection = false;
-                  }))
-          : selectedBooth == null
-              ? Container()
-              : BoothPanel(
-                  boothName: selectedBooth!.boothName,
-                  showDirection: () => setState(() => showDirection = true),
-                  cancel: () => setState(() => selectedBooth = null)),
-    ])));
+        body: Column(children: <Widget>[
+          Expanded(
+              child: WebView(
+                  initialUrl:
+                      'https://developer.expofp.com/examples/autumnfair.html',
+                  javascriptMode: JavascriptMode.unrestricted,
+                  javascriptChannels: <JavascriptChannel>{
+                    JavascriptChannel(
+                        name: 'onBoothClickHandler',
+                        onMessageReceived: (JavascriptMessage message) {
+                          setSelectedBooth(message.message);
+                        }),
+                    JavascriptChannel(
+                        name: 'onFpConfiguredHandler',
+                        onMessageReceived: (JavascriptMessage message) {
+                        }),
+                    JavascriptChannel(
+                        name: 'onDirectionHandler',
+                        onMessageReceived: (JavascriptMessage message) {
+                          setState(() {
+                            direction =
+                                Direction.fromJson(jsonDecode(message.message));
+                            selectedBooth = null;
+                            showDirections = false;
+                          });
+                        })
+                  },
+                  onWebViewCreated: (controller) {
+                    setState(() {
+                      webViewController = controller;
+                    });
+                  })),
+          showDirections
+              ? DirectionsPanel(
+                  booths: booths,
+                  to: selectedBooth,
+                  showDirection: (String from, String to) {
+                    webViewController
+                        ?.evaluateJavascript("selectRoute('$from', '$to')");
+                    setState(() {
+                      selectedBooth = null;
+                      showDirections = false;
+                      direction = null;
+                    });
+                  },
+                  cancel: () => setState(() {
+                        selectedBooth = null;
+                        showDirections = false;
+                      }))
+              : selectedBooth == null
+                  ? direction == null
+                      ? Container()
+                      : DirectionPanel(
+                          direction: direction!,
+                          cancel: () => setState(() => direction = null))
+                  : BoothPanel(
+                      booth: selectedBooth!,
+                      showDirection: () =>
+                          setState(() => showDirections = true),
+                      cancel: () => setState(() => selectedBooth = null)),
+        ]));
   }
 }

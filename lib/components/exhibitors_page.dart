@@ -1,3 +1,4 @@
+import 'package:expofp/common.dart';
 import 'package:flutter/material.dart';
 import 'package:expofp/components/controls.dart';
 import 'package:expofp/components/exhibitor_page.dart';
@@ -6,12 +7,14 @@ import 'package:expofp/models/exhibitor.dart';
 class ExhibitorsPage extends StatelessWidget {
   final List<Exhibitor> exhibitors;
 
-  const ExhibitorsPage({Key? key, required this.exhibitors}) : super(key: key);
+  final ShowMapCallback showMap;
+
+  const ExhibitorsPage(
+      {Key? key, required this.exhibitors, required this.showMap})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    print('############### Build ExhibitorsPage');
-
     return Scaffold(
       body: ListView.separated(
           padding: const EdgeInsets.all(8),
@@ -30,7 +33,7 @@ class ExhibitorsPage extends StatelessWidget {
           }),
       appBar: AppBar(
         title: const Text("Exhibitors"),
-        actions: const [MapButton()],
+        actions: [MapButton(showMap: showMap)],
       ),
     );
   }
