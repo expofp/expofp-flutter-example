@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 class MapPanel extends StatelessWidget {
   final Widget? header;
 
-  final Widget child;
+  final Widget? child;
 
   final VoidCallback cancel;
 
   const MapPanel(
-      {Key? key, required this.child, required this.cancel, this.header})
+      {Key? key, this.child, required this.cancel, this.header})
       : super(key: key);
 
   @override
@@ -24,7 +24,7 @@ class MapPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [header!, cancelButton],
           ),
-          child
+          child ?? Container()
         ],
       );
     } else {
@@ -35,7 +35,7 @@ class MapPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [cancelButton],
           ),
-          child
+          child ?? Container()
         ],
       );
     }
