@@ -1,6 +1,34 @@
 import 'package:expofp/common.dart';
 import 'package:flutter/material.dart';
 
+class IconCheckBox extends StatefulWidget {
+  final IconData iconData;
+  final IconCheckBoxCallback checkBoxCallback;
+
+  const IconCheckBox(
+      {Key? key, required this.iconData, required this.checkBoxCallback})
+      : super(key: key);
+  @override
+  _IconCheckBoxState createState() => _IconCheckBoxState();
+}
+
+class _IconCheckBoxState extends State<IconCheckBox> {
+  bool isChecked = false;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        color: isChecked ? Colors.blue : Colors.blueGrey,
+        icon: Icon(widget.iconData),
+        onPressed: () {
+          final newValue = !isChecked;
+          setState(() {
+            isChecked = newValue;
+          });
+          widget.checkBoxCallback(newValue);
+        },
+      );
+}
+
 class TextIcon extends StatelessWidget {
   final IconData iconData;
   final String text;
@@ -35,11 +63,13 @@ class TimeIcon extends TextIcon {
 }
 
 class DistanceIcon extends TextIcon {
-  const DistanceIcon({Key? key, required String distance})
+  const DistanceIcon(
+      {Key? key, required String distance, required bool exceptUnAccessible})
       : super(
             key: key,
             text: distance,
-            iconData: Icons.directions_walk,
+            iconData:
+                exceptUnAccessible ? Icons.accessible : Icons.directions_walk,
             textStyle: const TextStyle(fontSize: 28));
 }
 

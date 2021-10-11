@@ -21,7 +21,7 @@ class DirectionPanel extends StatelessWidget {
           Padding(
               padding: const EdgeInsets.only(
                   left: 14, top: 12, bottom: 12, right: 28),
-              child: DistanceIcon(distance: direction.distance)),
+              child: DistanceIcon(distance: direction.distance, exceptUnAccessible: direction.exceptUnAccessible,)),
           TimeIcon(time:  direction.time.toFormatString()),
         ],
       ),

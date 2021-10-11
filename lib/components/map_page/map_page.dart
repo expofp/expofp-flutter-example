@@ -47,6 +47,7 @@ class _MapPageState extends State<MapPage> {
   ExhibitorBooth? selectedBooth;
   Direction? direction;
   bool showDirections = false;
+  bool exceptUnAccessible = false;
   WebViewController? webViewController;
 
   @override
@@ -83,6 +84,11 @@ class _MapPageState extends State<MapPage> {
     setSelectedBooth(booth);
   }
 
+  void selectRoute(String from, String to, bool exceptUnAccessible) {
+    webViewController?.evaluateJavascript(
+        "selectRoute('$from', '$to', $exceptUnAccessible)");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,7 +100,13 @@ class _MapPageState extends State<MapPage> {
           title: const MapIcon(),
           actions: [
             IconButton(
-                onPressed: () => setState(() => showDirections = true),
+                onPressed: () {
+                  selectRoute('', '', false);
+                  setState(() {
+                    direction = null;
+                    showDirections = true;
+                  });
+                },
                 icon: const Icon(Icons.directions))
           ],
         ),
@@ -112,14 +124,14 @@ class _MapPageState extends State<MapPage> {
                         }),
                     JavascriptChannel(
                         name: 'onFpConfiguredHandler',
-                        onMessageReceived: (JavascriptMessage message) {
-                        }),
+                        onMessageReceived: (JavascriptMessage message) {}),
                     JavascriptChannel(
                         name: 'onDirectionHandler',
                         onMessageReceived: (JavascriptMessage message) {
                           setState(() {
-                            direction =
-                                Direction.fromJson(jsonDecode(message.message));
+                            direction = Direction.fromJson(
+                                jsonDecode(message.message),
+                                exceptUnAccessible);
                             selectedBooth = null;
                             showDirections = false;
                           });
@@ -132,18 +144,21 @@ class _MapPageState extends State<MapPage> {
                   })),
           showDirections
               ? DirectionsPanel(
+                  selectBooth: selectBooth,
                   booths: booths,
                   to: selectedBooth,
-                  showDirection: (String from, String to) {
-                    webViewController
-                        ?.evaluateJavascript("selectRoute('$from', '$to')");
+                  showDirection: (String from, String to, bool exUnAccessible) {
+                    selectRoute(from, to, exUnAccessible);
+
                     setState(() {
+                      exceptUnAccessible = exUnAccessible;
                       selectedBooth = null;
                       showDirections = false;
                       direction = null;
                     });
                   },
                   cancel: () => setState(() {
+                        exceptUnAccessible = false;
                         selectedBooth = null;
                         showDirections = false;
                       }))
@@ -152,7 +167,10 @@ class _MapPageState extends State<MapPage> {
                       ? Container()
                       : DirectionPanel(
                           direction: direction!,
-                          cancel: () => setState(() => direction = null))
+                          cancel: () {
+                            selectRoute('', '', false);
+                            setState(() => direction = null);
+                          })
                   : BoothPanel(
                       booth: selectedBooth!,
                       showDirection: () =>

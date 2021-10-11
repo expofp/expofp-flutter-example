@@ -1,10 +1,12 @@
 import 'package:expofp/common.dart';
+import 'package:expofp/components/controls.dart';
 import 'package:expofp/models/exhibitor_booth.dart';
 import 'package:flutter/material.dart';
 import 'package:expofp/components/map_page/map_panel.dart';
 
 class DirectionsPanel extends StatefulWidget {
   final BuildDirectionCallback showDirection;
+  final SelectBoothCallback selectBooth;
   final VoidCallback cancel;
 
   final List<ExhibitorBooth> booths;
@@ -12,6 +14,7 @@ class DirectionsPanel extends StatefulWidget {
 
   const DirectionsPanel(
       {required this.showDirection,
+      required this.selectBooth,
       required this.cancel,
       required this.booths,
       this.to,
@@ -25,6 +28,7 @@ class DirectionsPanel extends StatefulWidget {
 class _DirectionsPanelState extends State<DirectionsPanel> {
   final GlobalKey webViewKey = GlobalKey();
 
+  bool isAccessible = false;
   ExhibitorBooth? from;
   ExhibitorBooth? to;
 
@@ -40,12 +44,26 @@ class _DirectionsPanelState extends State<DirectionsPanel> {
   }
 
   @override
-  Widget build(BuildContext context) {   
+  Widget build(BuildContext context) {
     return MapPanel(
-        header: const Padding(
-            padding: EdgeInsets.only(left: 14, top: 12, bottom: 0),
-            child: Text("Directions",
-                textAlign: TextAlign.center, style: TextStyle(fontSize: 22))),
+        header: Padding(
+            padding: const EdgeInsets.only(left: 14, top: 12, bottom: 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const Text("Directions",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 22)),
+                IconCheckBox(
+                  iconData: Icons.accessible,
+                  checkBoxCallback: (bool isChecked) {
+                    setState(() {
+                      isAccessible = isChecked;
+                    });
+                  },
+                )
+              ],
+            )),
         child: Padding(
             padding: const EdgeInsets.only(left: 12, right: 12),
             child:
@@ -55,23 +73,30 @@ class _DirectionsPanelState extends State<DirectionsPanel> {
                   value: from,
                   hint: const Text('Starting point'),
                   items: items,
-                  onChanged: (ExhibitorBooth? newValue) =>
-                      setState(() => from = newValue)),
+                  onChanged: (ExhibitorBooth? newValue) {
+                    setState(() => from = newValue);
+                    if (newValue != null) {
+                      widget.selectBooth(newValue.boothName);
+                    }
+                  }),
               DropdownButton(
-                isExpanded: true,
-                value: to,
-                hint: const Text('End point'),
-                items: items,
-                onChanged: (ExhibitorBooth? newValue) =>
-                    setState(() => to = newValue),
-              ),
+                  isExpanded: true,
+                  value: to,
+                  hint: const Text('End point'),
+                  items: items,
+                  onChanged: (ExhibitorBooth? newValue) {
+                    setState(() => to = newValue);
+                    if (newValue != null) {
+                      widget.selectBooth(newValue.boothName);
+                    }
+                  }),
               ElevatedButton.icon(
                   icon: const Icon(Icons.directions),
                   label: const Text('Directions'),
                   onPressed: from == null || to == null
                       ? null
-                      : () =>
-                          widget.showDirection(from!.boothName, to!.boothName)),
+                      : () => widget.showDirection(
+                          from!.boothName, to!.boothName, isAccessible)),
             ])),
         cancel: widget.cancel);
   }
