@@ -1,6 +1,10 @@
 typedef ShowMapCallback = void Function({String? booth});
 
-typedef BuildDirectionCallback = void Function(String from, String to);
+typedef SelectBoothCallback = void Function(String booth);
+
+typedef BuildDirectionCallback = void Function(String from, String to, bool exceptUnAccessibl);
+
+typedef IconCheckBoxCallback = void Function(bool isChecked);
 
 extension DurationEx on Duration {
   String toFormatString() {
