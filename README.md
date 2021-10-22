@@ -1,16 +1,42 @@
-# expofp
+This is an example of how you can integrate ExpoFP maps into an android(Flutter) application.
 
-A new Flutter project.
+## Configuring WebView
 
-## Getting Started
+```js
+WebView(
+  initialUrl: 'https://developer.expofp.com/examples/autumnfair.html',
+  javascriptMode: JavascriptMode.unrestricted,
+  javascriptChannels: <JavascriptChannel>{
+    JavascriptChannel(
+      name: 'onBoothClickHandler',
+      onMessageReceived: (JavascriptMessage message) {
+        //Some code
+      }),
+    JavascriptChannel(
+      name: 'onFpConfiguredHandler',
+      onMessageReceived: (JavascriptMessage message) {
+        //Some code
+      }),
+    JavascriptChannel(
+      name: 'onDirectionHandler',
+      onMessageReceived: (JavascriptMessage message) {
+        //Some code
+      },
+      onWebViewCreated: (webViewController) {
+        //Some code
+      }
+)
+```
+## JavaScript code invocation
 
-This project is a starting point for a Flutter application.
+Calling up the booth selection function:
 
-A few resources to get you started if this is your first Flutter project:
+```js
+webViewController.evaluateJavascript("selectBooth('1306')");
+```
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+Calling the route building function:
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```js
+webViewController.evaluateJavascript("selectRoute('1306', '2206')");
+```
