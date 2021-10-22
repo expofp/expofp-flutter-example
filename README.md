@@ -21,10 +21,11 @@ WebView(
       name: 'onDirectionHandler',
       onMessageReceived: (JavascriptMessage message) {
         //Some code
-      },
-      onWebViewCreated: (webViewController) {
-        //Some code
-      }
+      }),
+  },
+  onWebViewCreated: (webViewController) {
+    //Some code
+  }
 )
 ```
 ## JavaScript code invocation
