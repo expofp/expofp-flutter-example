@@ -1,14 +1,17 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:expofp/components/controls.dart';
 import 'package:expofp/components/map_page/direction_panel.dart';
+import 'package:expofp/constants.dart';
+import 'package:expofp/helper.dart';
 import 'package:expofp/models/direction.dart';
 import 'package:expofp/models/exhibitor_booth.dart';
 import 'package:flutter/material.dart';
 import 'package:expofp/components/map_page/booth_panel.dart';
 import 'package:expofp/components/map_page/directions_panel.dart';
 import 'package:expofp/models/exhibitor.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 class MapPage extends StatefulWidget {
   static const routeName = '/mapPage';
@@ -21,6 +24,7 @@ class MapPage extends StatefulWidget {
 
   late final _MapPageState state;
 
+  // ignore: prefer_const_constructors_in_immutables
   MapPage(
       {Key? key,
       required this.exhibitors,
@@ -29,13 +33,14 @@ class MapPage extends StatefulWidget {
       : super(key: key);
 
   @override
+  // ignore: no_logic_in_create_state
   _MapPageState createState() {
     state = _MapPageState();
     return state;
   }
 
   void selectBooth(String booth) {
-    state.selectBooth(booth);
+    state.setSelectedBooth(booth);
   }
 }
 
@@ -48,7 +53,7 @@ class _MapPageState extends State<MapPage> {
   Direction? direction;
   bool showDirections = false;
   bool exceptUnAccessible = false;
-  WebViewController? webViewController;
+  InAppWebViewController? webViewController;
 
   @override
   void initState() {
@@ -77,16 +82,28 @@ class _MapPageState extends State<MapPage> {
         return newBooth;
       });
     });
+
+    selectBooth(booth);
   }
 
   void selectBooth(String booth) {
-    webViewController?.evaluateJavascript("selectBooth('$booth')");
-    setSelectedBooth(booth);
+    webViewController?.evaluateJavascript(source: "selectBooth('$booth')");
   }
 
   void selectRoute(String from, String to, bool exceptUnAccessible) {
     webViewController?.evaluateJavascript(
-        "selectRoute('$from', '$to', $exceptUnAccessible)");
+        source: "selectRoute('$from', '$to', $exceptUnAccessible)");
+  }
+
+  void setCurrentPosition(int x, int y, bool focus) {
+    webViewController?.evaluateJavascript(
+        source: "setCurrentPosition($x, $y, $focus)");
+  }
+
+  void initController(InAppWebViewController controller, String dir) async {
+    await Helper.update(dir);
+    controller.loadUrl(
+        urlRequest: URLRequest(url: Uri.parse('file:///$dir/index.html')));
   }
 
   @override
@@ -112,36 +129,55 @@ class _MapPageState extends State<MapPage> {
         ),
         body: Column(children: <Widget>[
           Expanded(
-              child: WebView(
-                  initialUrl:
-                      'https://developer.expofp.com/examples/autumnfair.html',
-                  javascriptMode: JavascriptMode.unrestricted,
-                  javascriptChannels: <JavascriptChannel>{
-                    JavascriptChannel(
-                        name: 'onBoothClickHandler',
-                        onMessageReceived: (JavascriptMessage message) {
-                          setSelectedBooth(message.message);
-                        }),
-                    JavascriptChannel(
-                        name: 'onFpConfiguredHandler',
-                        onMessageReceived: (JavascriptMessage message) {}),
-                    JavascriptChannel(
-                        name: 'onDirectionHandler',
-                        onMessageReceived: (JavascriptMessage message) {
-                          setState(() {
-                            direction = Direction.fromJson(
-                                jsonDecode(message.message),
-                                exceptUnAccessible);
-                            selectedBooth = null;
-                            showDirections = false;
-                          });
-                        })
-                  },
-                  onWebViewCreated: (controller) {
-                    setState(() {
-                      webViewController = controller;
+            child: InAppWebView(
+              initialOptions: InAppWebViewGroupOptions(
+                  android: AndroidInAppWebViewOptions(
+                      allowFileAccess: true,
+                      domStorageEnabled: true,
+                      allowContentAccess: true),
+                  crossPlatform: InAppWebViewOptions(
+                      allowUniversalAccessFromFileURLs: true,
+                      javaScriptEnabled: true,
+                      allowFileAccessFromFileURLs: true)),
+              onConsoleMessage: (InAppWebViewController controller,
+                  ConsoleMessage consoleMessage) {
+              },
+              onWebViewCreated: (InAppWebViewController controller) {
+                
+                initController(controller, Constants.dir);
+                setState(() {
+                  webViewController = controller;
+                });
+
+                controller.addJavaScriptHandler(
+                    handlerName: 'onBoothClick',
+                    callback: (args) {
+                      setSelectedBooth(args[0]);
                     });
-                  })),
+
+                controller.addJavaScriptHandler(
+                    handlerName: 'onFpConfigured', callback: (args) {});
+
+                controller.addJavaScriptHandler(
+                    handlerName: 'onDirection',
+                    callback: (args) {
+                      final newDirection = Direction.fromJson(
+                            jsonDecode(args[0]), exceptUnAccessible);
+                      setState(() {
+                        direction = newDirection.time == Duration.zero && newDirection.distance == '0m' ? null : newDirection;
+                        selectedBooth = null;
+                        showDirections = false;
+                      });
+                    });
+
+                controller.addJavaScriptHandler(
+                    handlerName: 'readFile',
+                    callback: (args) {
+                      return File('${Constants.dir}/${args[0]}').readAsStringSync();
+                    });
+              },
+            ),
+          ),
           showDirections
               ? DirectionsPanel(
                   selectBooth: selectBooth,
