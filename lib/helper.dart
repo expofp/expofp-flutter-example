@@ -83,7 +83,20 @@ class Helper {
     await updateFile('assets/vendor/sanitize-css/sanitize.css',
         '$dir/vendor/sanitize-css/sanitize.css');
 
+    await updateFile('assets/locales/ar.json', '$dir/locales/ar.json');
+    await updateFile('assets/locales/de.json', '$dir/locales/de.json');
+    await updateFile('assets/locales/es.json', '$dir/locales/es.json');
+    await updateFile('assets/locales/fr.json', '$dir/locales/fr.json');
+    await updateFile('assets/locales/it.json', '$dir/locales/it.json');
+    await updateFile('assets/locales/ko.json', '$dir/locales/ko.json');
+    await updateFile('assets/locales/nl.json', '$dir/locales/nl.json');
+    await updateFile('assets/locales/pt.json', '$dir/locales/pt.json');
     await updateFile('assets/locales/ru.json', '$dir/locales/ru.json');
+    await updateFile('assets/locales/sv.json', '$dir/locales/sv.json');
+    await updateFile('assets/locales/th.json', '$dir/locales/th.json');
+    await updateFile('assets/locales/tr.json', '$dir/locales/tr.json');
+    await updateFile('assets/locales/vi.json', '$dir/locales/vi.json');
+    await updateFile('assets/locales/zh.json', '$dir/locales/zh.json');
 
     if (!networkAvailable ||
         !(await updateFileFromUrl('${Constants.dataUrl}/data.js', '$dir/data/data.js'))) {
