@@ -38,7 +38,7 @@ InAppWebView(
 ```
 ## JavaScript code invocation
 
-Calling up the booth selection function:
+Calling the booth selection function:
 
 ```js
 webViewController?.evaluateJavascript(source: "selectBooth($boothName)");
