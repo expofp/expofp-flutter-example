@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:expofp/components/controls.dart';
 import 'package:expofp/components/map_page/direction_panel.dart';
-import 'package:expofp/constants.dart';
 import 'package:expofp/helper.dart';
 import 'package:expofp/models/direction.dart';
 import 'package:expofp/models/exhibitor_booth.dart';
@@ -12,6 +11,7 @@ import 'package:expofp/components/map_page/booth_panel.dart';
 import 'package:expofp/components/map_page/directions_panel.dart';
 import 'package:expofp/models/exhibitor.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:path_provider/path_provider.dart';
 
 class MapPage extends StatefulWidget {
   static const routeName = '/mapPage';
@@ -100,10 +100,9 @@ class _MapPageState extends State<MapPage> {
         source: "setCurrentPosition($x, $y, $focus)");
   }
 
-  void initController(InAppWebViewController controller, String dir) async {
+  Future<void> initController(InAppWebViewController controller, String dir) async {
     await Helper.update(dir);
-    controller.loadUrl(
-        urlRequest: URLRequest(url: Uri.parse('file:///$dir/index.html')));
+    await controller.loadUrl(urlRequest: URLRequest(url: Uri.parse('file:///$dir/index.html')));
   }
 
   @override
@@ -140,41 +139,50 @@ class _MapPageState extends State<MapPage> {
                       javaScriptEnabled: true,
                       allowFileAccessFromFileURLs: true)),
               onConsoleMessage: (InAppWebViewController controller,
-                  ConsoleMessage consoleMessage) {
-              },
+                  ConsoleMessage consoleMessage) {},
               onWebViewCreated: (InAppWebViewController controller) {
-                
-                initController(controller, Constants.dir);
-                setState(() {
-                  webViewController = controller;
-                });
+                getApplicationDocumentsDirectory().then((result) async {
+                  await initController(controller, result.path);
 
-                controller.addJavaScriptHandler(
-                    handlerName: 'onBoothClick',
-                    callback: (args) {
-                      setSelectedBooth(args[0]);
-                    });
-
-                controller.addJavaScriptHandler(
-                    handlerName: 'onFpConfigured', callback: (args) {});
-
-                controller.addJavaScriptHandler(
-                    handlerName: 'onDirection',
-                    callback: (args) {
-                      final newDirection = Direction.fromJson(
-                            jsonDecode(args[0]), exceptUnAccessible);
-                      setState(() {
-                        direction = newDirection.time == Duration.zero && newDirection.distance == '0m' ? null : newDirection;
-                        selectedBooth = null;
-                        showDirections = false;
+                  controller.addJavaScriptHandler(
+                      handlerName: 'onBoothClick',
+                      callback: (args) {
+                        setSelectedBooth(args[0]);
                       });
-                    });
 
-                controller.addJavaScriptHandler(
-                    handlerName: 'readFile',
-                    callback: (args) {
-                      return File('${Constants.dir}/${args[0]}').readAsStringSync();
-                    });
+                  controller.addJavaScriptHandler(
+                      handlerName: 'onFpConfigured', callback: (args) {});
+
+                  controller.addJavaScriptHandler(
+                      handlerName: 'onDirection',
+                      callback: (args) {
+                        final newDirection = Direction.fromJson(
+                            jsonDecode(args[0]), exceptUnAccessible);
+                        setState(() {
+                          direction = newDirection.time == Duration.zero &&
+                                  newDirection.distance == '0m'
+                              ? null
+                              : newDirection;
+                          selectedBooth = null;
+                          showDirections = false;
+                        });
+                      });
+
+                  controller.addJavaScriptHandler(
+                      handlerName: 'readFile',
+                      callback: (args) {
+                        return File('${result.path}/${args[0]}')
+                            .readAsStringSync();
+                      });
+
+                  setState(() {
+                    webViewController = controller;
+                  });
+
+                  if (Platform.isIOS) {
+                    await controller.reload();
+                  }
+                });
               },
             ),
           ),

@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.expofp">
+    xmlns:dist="http://schemas.android.com/apk/distribution"
+    package="com.plan.expofp">
+   <dist:module dist:instant="true" />
    <uses-permission android:name="android.permission.INTERNET"/>
    <application
         android:label="ExpoFP"

@@ -1,4 +1,4 @@
-package com.example.expofp
+package com.plan.expofp
 
 import io.flutter.embedding.android.FlutterActivity
 

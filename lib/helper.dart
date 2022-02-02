@@ -45,15 +45,8 @@ class Helper {
 
     await updateFile('assets/index.html', '$dir/index.html');
 
-    if (!networkAvailable ||
-        !(await updateFileFromUrl('${Constants.jsUrl}/expofp.js', '$dir/expofp.js'))) {
-      await updateFile('assets/expofp.js', '$dir/expofp.js');
-    }
-
-    if (!networkAvailable ||
-        !(await updateFileFromUrl('${Constants.jsUrl}/floorplan.js', '$dir/floorplan.js'))) {
-      await updateFile('assets/floorplan.js', '$dir/floorplan.js');
-    }
+    await updateFile('assets/expofp.js', '$dir/expofp.js');
+    await updateFile('assets/floorplan.js', '$dir/floorplan.js');
 
     await updateFile(
         'assets/vendors~floorplan.js', '$dir/vendors~floorplan.js');
@@ -107,5 +100,7 @@ class Helper {
         !(await updateFileFromUrl('${Constants.dataUrl}/fp.svg.js', '$dir/data/fp.svg.js'))) {
       await updateFile('assets/data/fp.svg.js', '$dir/data/fp.svg.js');
     }
+
+    await updateFile('assets/data/demo.png', '$dir/data/demo.png');
   }
 }
